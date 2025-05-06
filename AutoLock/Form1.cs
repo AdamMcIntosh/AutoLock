@@ -8,10 +8,12 @@ public partial class Form1 : Form
 {
     private Timer alertTimer;
     private Timer waitTimer;
+    private bool dialogOpen = false;
+    private Timer timeoutTimer;
+    
     public Form1()
     {
         InitializeComponent();
-        this.Hide(); 
         InitializeAlertTimer();
     }
     
@@ -25,25 +27,46 @@ public partial class Form1 : Form
 
     private void AlertTimer_Tick(object sender, EventArgs e)
     {
-        ShowYesNoAlert();
+        if (!dialogOpen)
+        {
+            // Use Invoke to ensure UI operations happen on the UI thread
+            this.Invoke((MethodInvoker)delegate
+            {
+                ShowYesNoAlert();
+            });
+        }
     }
 
     private void ShowYesNoAlert()
     {
+        if (dialogOpen) return;
+        
+        dialogOpen = true;
         this.Hide();
-        var timeoutTimer = new Timer();
+        
+        // Initialize timeout timer
+        if (timeoutTimer != null)
+        {
+            timeoutTimer.Stop();
+            timeoutTimer.Dispose();
+        }
+        
+        timeoutTimer = new Timer();
         timeoutTimer.Interval = 30000; // 30 seconds
         timeoutTimer.Elapsed += TimeoutTimer_Tick;
         timeoutTimer.Start();
+        
         var result = MessageBox.Show(
             "Are you still there?",
             "Confirmation",
             MessageBoxButtons.YesNo,
             MessageBoxIcon.Question);
 
+        timeoutTimer.Stop();
+        timeoutTimer.Dispose();
+        
         if (result == DialogResult.Yes)
         {
-            timeoutTimer.Stop();
             var wait = MessageBox.Show(
                 "Do you want to wait 15 minutes?",
                 "Confirmation",
@@ -60,10 +83,18 @@ public partial class Form1 : Form
         {
             Process.Start("rundll32.exe", "user32.dll,LockWorkStation");
         }
+        
+        dialogOpen = false;
     }
 
     private void StartWaitTimer()
     {
+        if (waitTimer != null)
+        {
+            waitTimer.Stop();
+            waitTimer.Dispose();
+        }
+        
         waitTimer = new Timer();
         waitTimer.Interval = 900000; // 15 minutes in milliseconds
         waitTimer.Elapsed += WaitTimer_Tick;
@@ -78,6 +109,10 @@ public partial class Form1 : Form
 
     private void TimeoutTimer_Tick(object sender, EventArgs e)
     {
-        Process.Start("rundll32.exe", "user32.dll,LockWorkStation");
+        this.Invoke((MethodInvoker)delegate
+        {
+            dialogOpen = false;
+            Process.Start("rundll32.exe", "user32.dll,LockWorkStation");
+        });
     }
 }
