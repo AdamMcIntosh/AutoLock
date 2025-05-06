@@ -21,7 +21,6 @@ public partial class Form1 : Form
         alertTimer.Interval = 30000; // 30 seconds
         alertTimer.Elapsed += AlertTimer_Tick;
         alertTimer.Start();
-        alertTimer.Start();
     }
 
     private void AlertTimer_Tick(object sender, EventArgs e)
